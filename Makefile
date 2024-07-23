@@ -56,10 +56,11 @@ ibus-bamboo:
 docker-engine:
 	sudo apt install -y apt-transport-https ca-certificates curl gnupg
 	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/dockerce.gpg
-	echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/dockerce.gpg] https://download.docker.com/linux/ubuntu jammy stable" | sudo tee /etc/apt/sources.list.d/dockerce.list > /dev/null
+	echo "deb [arch=amd64 signed-by=/usr/share/keyrings/dockerce.gpg] https://download.docker.com/linux/ubuntu jammy stable" | sudo tee /etc/apt/sources.list.d/dockerce.list > /dev/null
 	sudo apt update
 	sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
 	sudo docker version
+	sudo groupadd docker
 	sudo usermod -aG docker $USER
 	newgrp docker
 	docker run hello-world
