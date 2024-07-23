@@ -35,7 +35,7 @@ setup-env:
 
 # Target: setup
 # Description: Perform initial setup (update, install Java, install Maven)
-setup: init install-java install-maven setup-env ibus-bamboo
+setup: init install-java install-maven setup-env ibus-bamboo nvm node-20
 
 # Target: git
 # Description: Install Git and check version
@@ -64,3 +64,25 @@ docker-engine:
 	sudo usermod -aG docker $USER
 	newgrp docker
 	docker run hello-world
+
+nvm:
+	curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
+node-20:
+	nvm install v20.15.1
+	node --version
+	npm --version
+	npm install -g yarn
+	yarn --version
+
+
+k8s:
+	sudo swapoff -a
+	sudo sed -i '/ swap / s/^/#/' /etc/fstab
+	curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube_latest_amd64.deb
+	sudo dpkg -i minikube_latest_amd64.deb
+	minikube start
+	minikube start --driver=docker
+	minikube kubectl -- get po -A
+	@echo 'alias kubectl="minikube kubectl --"' >> ~/.bashrc
+
