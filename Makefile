@@ -9,9 +9,9 @@ init:
 # Description: Install OpenJDK 17 and set JAVA_HOME
 install-java:
 	@echo "Installing OpenJDK 17..."
-	sudo apt install openjdk-17-jdk -y
+	sudo apt install openjdk-21-jdk -y
 	@echo "Setting JAVA_HOME..."
-	@echo "export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> ~/.profile
+	@echo "export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64" >> ~/.profile
 	@echo "export PATH=\$$JAVA_HOME/bin:\$$PATH" >> ~/.profile
 	@export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 
@@ -85,4 +85,54 @@ k8s:
 	minikube start --driver=docker
 	minikube kubectl -- get po -A
 	@echo 'alias kubectl="minikube kubectl --"' >> ~/.bashrc
+
+vm:
+	sudo apt update
+	sudo apt install qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virt-manager -y
+	lsmod | grep kvm
+	sudo systemctl enable --now libvirtd
+	groups $USER
+	newgrp libvirt
+	sudo virsh net-start default
+	sudo virsh net-autostart default
+
+
+vm-ip-address:
+	virsh net-dhcp-leases default
+
+k8s-vm-base:
+	sudo apt update && sudo apt upgrade -y
+	sudo apt install -y containerd
+	sudo mkdir -p /etc/containerd
+	containerd config default | sudo tee /etc/containerd/config.toml
+	sudo systemctl restart containerd
+	sudo swapoff -a
+	sudo sed -i '/ swap / s/^/#/' /etc/fstab
+	sudo apt install -y apt-transport-https ca-certificates curl gpg
+	sudo curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg
+	echo "deb [signed-by=/etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+	sudo apt update
+	sudo apt install -y kubelet kubeadm kubectl
+	sudo apt-mark hold kubelet kubeadm kubectl
+	sudo modprobe br_netfilter
+	sudo tee /etc/sysctl.d/k8s.conf <<EOF
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+EOF
+	sudo sysctl --system
+	cat /proc/sys/net/bridge/bridge-nf-call-iptables
+	cat /proc/sys/net/ipv4/ip_forward  
+
+k8s-master: 
+	sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+	mkdir -p $HOME/.kube
+	sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+	sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+k8s-master-create-token:
+	sudo kubeadm token create --print-join-command
+
+k8s-worker-config-kubeadm:
+	sudo kubeadm config images pull
 
